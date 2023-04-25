@@ -41,7 +41,7 @@ const getCart = async (req, res, next) => {
                 as: 'product'
             }
         })
-        if (carts.length === 0) throw new ApiErrorHandler(404, 'CART IS EMPTY')
+        if (carts.length === 0) throw new ApiErrorHandler(404, 'CART NOT FOUND')
         res.status(200).json(
             successApi(200, 'Ok', cartTransformer.list(carts))
         )
@@ -62,10 +62,10 @@ const updateCart = async (req, res, next) => {
             }
         })
 
-        if (!cart) throw new ApiErrorHandler(404, 'CART IS EMPTY')
+        if (!cart) throw new ApiErrorHandler(404, 'CART NOT FOUND')
         const product = await Product.findByPk(cart.product_id)
         if (parseInt(qty) > product.stock) throw new ApiErrorHandler(422, 'OUT OF STOCK')
-        
+
         cart.qty = parseInt(qty)
         await cart.save()
 
@@ -87,7 +87,7 @@ const removeCart = async (req, res, next) => {
                 user_id: userId
             }
         })
-        if (!cart) throw new ApiErrorHandler(404, 'CART IS EMPTY')
+        if (!cart) throw new ApiErrorHandler(404, 'CART NOT FOUND')
         await cart.destroy()
 
         res.status(200).json(
