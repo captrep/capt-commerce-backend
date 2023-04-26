@@ -1,5 +1,5 @@
 const { nanoid } = require('nanoid')
-const { Cart, Product } = require('../../../database/models')
+const { Cart, CartItem, Product } = require('../../../database/models')
 const ApiErrorHandler = require('../../../helpers/ApiErrorHandler')
 const { successApi } = require('../../../utils/response')
 const cartTransformer = require('../../../helpers/transformer/cart')
@@ -14,16 +14,29 @@ const addToCart = async (req, res, next) => {
         if (!product) throw new ApiErrorHandler(404, 'PRODUCT NOT FOUND')
         if (parseInt(qty) > product.stock) throw new ApiErrorHandler(422, 'OUT OF STOCK')
 
-        const cart = await Cart.create({
+        let cart = await Cart.findOne({
+            where: {
+                user_id
+            }
+        })
+
+        if (!cart) {
+            cart = await Cart.create({
+                id: nanoid(),
+                user_id,
+            })
+        }
+
+        const cartItem = await CartItem.create({
             id: nanoid(),
-            user_id,
+            cart_id: cart.id,
             product_id,
             qty
 
         })
 
         res.status(201).json(
-            successApi(201, 'Created', cart)
+            successApi(201, 'Created', cartItem)
         )
     } catch (error) {
         next(error)
@@ -32,18 +45,24 @@ const addToCart = async (req, res, next) => {
 
 const getCart = async (req, res, next) => {
     try {
-        const carts = await Cart.findAll({
+        const cart = await Cart.findOne({
             where: {
                 user_id: req.user.id
+            }
+        })
+        if (!cart) throw new ApiErrorHandler(404, 'CART NOT FOUND')
+
+        const cartItems = await CartItem.findAll({
+            where: {
+                cart_id: cart.id
             },
             include: {
                 model: Product,
                 as: 'product'
             }
         })
-        if (carts.length === 0) throw new ApiErrorHandler(404, 'CART NOT FOUND')
         res.status(200).json(
-            successApi(200, 'Ok', cartTransformer.list(carts))
+            successApi(200, 'Ok', cartTransformer.list(cartItems))
         )
     } catch (error) {
         next(error)
@@ -52,25 +71,27 @@ const getCart = async (req, res, next) => {
 
 const updateCart = async (req, res, next) => {
     try {
-        const cartId = req.params.id
-        const userId = req.user.id
-        const { qty } = req.body
         const cart = await Cart.findOne({
             where: {
-                id: cartId,
-                user_id: userId
+                user_id: req.user.id
             }
         })
-
         if (!cart) throw new ApiErrorHandler(404, 'CART NOT FOUND')
-        const product = await Product.findByPk(cart.product_id)
+
+        const { cart_item_id, qty } = req.body
+        const cartItem = await CartItem.findOne({
+            where: {
+                id: cart_item_id
+            }
+        })
+        const product = await Product.findByPk(cartItem.product_id)
         if (parseInt(qty) > product.stock) throw new ApiErrorHandler(422, 'OUT OF STOCK')
 
-        cart.qty = parseInt(qty)
-        await cart.save()
+        cartItem.qty = parseInt(qty)
+        await cartItem.save()
 
         res.status(200).json(
-            successApi(200, 'Ok', cart)
+            successApi(200, 'Ok', cartItem)
         )
     } catch (error) {
         next(error)
@@ -83,15 +104,21 @@ const removeCart = async (req, res, next) => {
         const userId = req.user.id
         const cart = await Cart.findOne({
             where: {
-                id: cartId,
                 user_id: userId
             }
         })
         if (!cart) throw new ApiErrorHandler(404, 'CART NOT FOUND')
-        await cart.destroy()
+
+        const cartItem = await CartItem.findOne({
+            where: {
+                id: cartId,
+            }
+        })
+        
+        await cartItem.destroy()
 
         res.status(200).json(
-            successApi(200, 'Ok', cart)
+            successApi(200, 'Ok', cartItem)
         )
     } catch (error) {
         next(error)

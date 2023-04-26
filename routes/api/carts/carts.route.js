@@ -15,7 +15,7 @@ cartsRoute.post(
 )
 
 cartsRoute.put(
-    '/:id',
+    '/',
     jwtMiddleware,
     cartsController.updateCart
 )

@@ -1,7 +1,6 @@
 function list(payload) {
     return payload.map(carts => {
         cart = carts.toJSON()
-
         return {
             id: cart.id,
             product: cart.product?.name,
