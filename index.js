@@ -16,7 +16,7 @@ app.use('/api', apiRoutes);
 app.use('*', (req, res) => {
     res.json({
         success: true,
-        message: 'simple e-commerce API'
+        message: 'capt-commerce API'
     })
 })
 
