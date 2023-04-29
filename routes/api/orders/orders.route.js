@@ -10,4 +10,15 @@ ordersRoute.post(
     ordersController.addOrder
 )
 
+ordersRoute.get(
+    '/',
+    jwtMiddleware,
+    ordersController.getOrder
+)
+
+ordersRoute.get(
+    '/:id',
+    jwtMiddleware,
+    ordersController.getOrderDetail
+)
 module.exports = ordersRoute
